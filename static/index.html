@@ -4,138 +4,200 @@
   <meta charset="UTF-8" />
   <title>JWT Auth Portal</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: radial-gradient(circle, #0f172a, #0b1120);
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+    }
+    input:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 6px #3b82f6, 0 0 12px #3b82f6;
+      border-color: #3b82f6;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4">
-  <div class="bg-white shadow-2xl rounded-xl w-full max-w-md p-6 space-y-6">
+<body class="min-h-screen flex items-center justify-center px-4 text-white font-sans">
+  <div class="glass w-full max-w-md p-8 rounded-2xl shadow-xl space-y-6">
 
-    <h2 class="text-3xl font-bold text-center text-gray-800">SOCIAL MEDIA PORTAL</h2>
+    <h2 class="text-3xl font-bold text-center">SOCIAL MEDIA PORTAL</h2>
 
-    <!-- Tabs for Login and Signup -->
+    <!-- Tabs -->
     <div class="flex justify-center gap-4">
-      <button onclick="showTab('login')" class="tab-btn text-blue-600 font-semibold">Login</button>
-      <button onclick="showTab('signup')" class="tab-btn text-gray-500">Signup</button>
+      <button onclick="showTab('login')" class="tab-btn text-blue-400 font-semibold underline">Login</button>
+      <button onclick="showTab('signup')" class="tab-btn text-gray-300">Signup</button>
     </div>
 
     <!-- Signup Form -->
     <form id="signupForm" class="tab-content hidden space-y-4">
-      <h3 class="text-xl font-semibold text-gray-700">Sign Up</h3>
-      <input id="signupUsername" type="text" placeholder="Username" required class="w-full p-2 border rounded" />
-      <input id="signupPassword" type="password" placeholder="Password" required class="w-full p-2 border rounded" />
-      <select id="signupRole" class="w-full p-2 border rounded">
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-        <option value="superadmin">Superadmin</option>
+      <h3 class="text-xl font-semibold">Sign Up</h3>
+
+      <input id="signupUsername" type="text" placeholder="Username" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorSignupUsername"></div>
+
+      <input id="signupEmail" type="email" placeholder="Email" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorSignupEmail"></div>
+
+      <input id="signupPassword" type="password" placeholder="Password" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorSignupPassword"></div>
+
+      <input id="signupConfirmPassword" type="password" placeholder="Confirm Password" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorSignupConfirmPassword"></div>
+
+      <select id="signupRole" class="w-full p-2 border border-gray-600 bg-transparent rounded text-white">
+        <option class="text-black" value="user">User</option>
+        <option class="text-black" value="admin">Admin</option>
+        <option class="text-black" value="superadmin">Superadmin</option>
       </select>
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-full">Sign Up</button>
+
+      <button type="submit" id="signupSubmitBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-full" disabled>Sign Up</button>
     </form>
 
     <!-- Login Form -->
     <form id="loginForm" class="tab-content space-y-4">
-      <h3 class="text-xl font-semibold text-gray-700">Log In</h3>
-      <input id="loginUsername" type="text" placeholder="Username" required class="w-full p-2 border rounded" />
-      <input id="loginPassword" type="password" placeholder="Password" required class="w-full p-2 border rounded" />
-      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded w-full">Log In</button>
+      <h3 class="text-xl font-semibold">Log In</h3>
+
+      <input id="loginEmail" type="email" placeholder="Email" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorLoginEmail"></div>
+
+      <input id="loginPassword" type="password" placeholder="Password" class="w-full p-2 border border-gray-600 bg-transparent rounded" />
+      <div class="text-red-500 text-sm" id="errorLoginPassword"></div>
+
+      <button type="submit" id="loginSubmitBtn" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded w-full" disabled>Log In</button>
     </form>
 
     <!-- Profile Section -->
-    <div id="profileSection" class="hidden space-y-4 pt-4 border-t">
+    <div id="profileSection" class="hidden space-y-4 pt-4 border-t border-gray-600">
       <button id="getProfileBtn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded w-full">View Profile</button>
-      <pre id="responseOutput" class="bg-gray-100 p-3 rounded text-sm max-h-60 overflow-y-auto"></pre>
+      <pre id="responseOutput" class="bg-gray-900 text-green-400 p-3 rounded text-sm max-h-60 overflow-y-auto"></pre>
     </div>
-
   </div>
 
   <script>
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
     const signupForm = document.getElementById("signupForm");
     const loginForm = document.getElementById("loginForm");
     const getProfileBtn = document.getElementById("getProfileBtn");
-    const output = document.getElementById("responseOutput");
+    const responseOutput = document.getElementById("responseOutput");
     const profileSection = document.getElementById("profileSection");
 
     function showTab(tab) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelector(`#${tab}Form`).classList.remove('hidden');
-
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('text-blue-600'));
-      event.target.classList.add('text-blue-600');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('text-blue-400', 'underline'));
+      event.target.classList.add('text-blue-400', 'underline');
     }
 
-    // Signup Handler
-    signupForm.addEventListener("submit", (e) => {
+    function validateSignupForm() {
+      const username = signupUsername.value.trim();
+      const email = signupEmail.value.trim();
+      const password = signupPassword.value;
+      const confirm = signupConfirmPassword.value;
+      let valid = true;
+
+      errorSignupUsername.textContent = username.length >= 3 ? "" : "Username must be at least 3 characters.";
+      valid &= username.length >= 3;
+
+      errorSignupEmail.textContent = emailRegex.test(email) ? "" : "Invalid email format.";
+      valid &= emailRegex.test(email);
+
+      errorSignupPassword.textContent = passwordRegex.test(password) ? "" : "Password must include uppercase, lowercase, number, symbol, and be 8+ characters.";
+      valid &= passwordRegex.test(password);
+
+      errorSignupConfirmPassword.textContent = password === confirm ? "" : "Passwords do not match.";
+      valid &= password === confirm;
+
+      signupSubmitBtn.disabled = !valid;
+    }
+
+    function validateLoginForm() {
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+      let valid = true;
+
+      errorLoginEmail.textContent = emailRegex.test(email) ? "" : "Invalid email format.";
+      valid &= emailRegex.test(email);
+
+      errorLoginPassword.textContent = password.length > 0 ? "" : "Password is required.";
+      valid &= password.length > 0;
+
+      loginSubmitBtn.disabled = !valid;
+    }
+
+    document.querySelectorAll("#signupForm input").forEach(i => i.addEventListener("input", validateSignupForm));
+    document.querySelectorAll("#loginForm input").forEach(i => i.addEventListener("input", validateLoginForm));
+
+    signupForm.onsubmit = (e) => {
       e.preventDefault();
-      const username = document.getElementById("signupUsername").value;
-      const password = document.getElementById("signupPassword").value;
-      const role = document.getElementById("signupRole").value;
+      const data = {
+        username: signupUsername.value,
+        email: signupEmail.value,
+        password: signupPassword.value,
+        role: signupRole.value
+      };
 
       fetch("/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, role }),
+        body: JSON.stringify(data)
       })
-        .then((res) => res.json())
-        .then((data) => {
-          output.textContent = JSON.stringify(data, null, 2);
-          alert("Signup successful!");
-          showTab('login');
-        })
-        .catch((err) => console.error("Signup error:", err));
-    });
+      .then(res => res.json())
+      .then(data => {
+        alert("Signup successful!");
+        responseOutput.textContent = JSON.stringify(data, null, 2);
+        showTab('login');
+      })
+      .catch(err => console.error("Signup error:", err));
+    };
 
-    // Login Handler (Improved)
-    loginForm.addEventListener("submit", (e) => {
+    loginForm.onsubmit = (e) => {
       e.preventDefault();
-      const username = document.getElementById("loginUsername").value;
-      const password = document.getElementById("loginPassword").value;
-
       const formData = new URLSearchParams();
-      formData.append("username", username);
-      formData.append("password", password);
+      formData.append("username", loginEmail.value);
+      formData.append("password", loginPassword.value);
 
       fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
+        body: formData
       })
-        .then(async (res) => {
-          const data = await res.json();
-          if (!res.ok) {
-            throw new Error(data.detail || "Login failed");
-          }
-          localStorage.setItem("token", data.access_token);
-          output.textContent = JSON.stringify(data, null, 2);
-          alert("Login successful!");
-          profileSection.classList.remove("hidden");
-        })
-        .catch((err) => {
-          alert("Login failed: " + err.message);
-          console.error("Login error:", err);
-        });
-    });
+      .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Login failed");
+        localStorage.setItem("token", data.access_token);
+        alert("Login successful!");
+        responseOutput.textContent = JSON.stringify(data, null, 2);
+        profileSection.classList.remove("hidden");
+      })
+      .catch(err => {
+        alert("Login failed: " + err.message);
+        console.error(err);
+      });
+    };
 
-    // Profile Handler
-    getProfileBtn.addEventListener("click", () => {
+    getProfileBtn.onclick = () => {
       const token = localStorage.getItem("token");
-      if (!token) {
-        alert("You must log in first.");
-        return;
-      }
+      if (!token) return alert("You must log in first.");
 
       fetch("/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` }
       })
-        .then((res) => res.json())
-        .then((data) => {
-          output.textContent = JSON.stringify(data, null, 2);
-        })
-        .catch((err) => {
-          console.error("Profile fetch error:", err);
-          alert("Unauthorized or error fetching profile");
-        });
-    });
+      .then(res => res.json())
+      .then(data => {
+        responseOutput.textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        alert("Error fetching profile.");
+        console.error(err);
+      });
+    };
 
-    // Show login tab by default
     showTab('login');
   </script>
 </body>

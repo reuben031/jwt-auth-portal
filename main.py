@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, HTTPException, Depends, status, Form
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -14,7 +13,7 @@ import os
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 🔧 Custom OpenAPI schema to enable Authorize 🔐 button in Swagger UI
+# 🔧 Custom Swagger schema with Authorize JWT button
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -40,45 +39,57 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# ✅ Signup
+# ✅ Signup route
 @app.post("/signup")
 def signup(user: UserCreate):
+    # Check for duplicate username
     if user.username in fake_users_db:
         raise HTTPException(status_code=400, detail="Username already exists")
+
+    # Check for duplicate email
+    for u in fake_users_db.values():
+        if u.get("email") == user.email:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
     if user.role not in ["user", "admin", "superadmin"]:
         raise HTTPException(status_code=400, detail="Invalid role")
 
     hashed_pw = hash_password(user.password)
 
+    # Store user
     fake_users_db[user.username] = {
         "username": user.username,
+        "email": user.email,
         "password": hashed_pw,
         "role": user.role
     }
 
-    save_users()  # ✅ Save to users.json
+    save_users()  # persist to users.json
 
     print("\nCurrent fake_users_db:")
     print(fake_users_db)
 
     return {"message": f"User {user.username} created successfully"}
 
-# ✅ Login (HTML Form based)
+# ✅ Login route (Form-based)
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
-    db_user = fake_users_db.get(username)
-    print("Current users:", fake_users_db)
+    # Treat 'username' as email in frontend
+    user_record = None
+    for user in fake_users_db.values():
+        if user.get("email") == username:
+            user_record = user
+            break
 
-    if not db_user:
+    if not user_record:
         raise HTTPException(status_code=401, detail="User not found. Please sign up first.")
 
-    if not verify_password(password, db_user["password"]):
+    if not verify_password(password, user_record["password"]):
         raise HTTPException(status_code=401, detail="Incorrect password.")
 
     token = create_access_token({
-        "sub": username,
-        "role": db_user["role"]
+        "sub": user_record["username"],
+        "role": user_record["role"]
     })
 
     return {
@@ -86,7 +97,7 @@ def login(username: str = Form(...), password: str = Form(...)):
         "token_type": "bearer"
     }
 
-# ✅ Profile (any logged-in user)
+# ✅ Profile route (any logged-in user)
 @app.get("/profile")
 def profile(current_user: dict = Depends(get_current_user)):
     return {
@@ -95,7 +106,7 @@ def profile(current_user: dict = Depends(get_current_user)):
         "role": current_user["role"]
     }
 
-# ✅ Admin-only route (allows superadmin too)
+# ✅ Admin-only route
 @app.get("/admin-only")
 def admin_only(current_user: dict = Depends(get_current_user)):
     if current_user["role"] not in ["admin", "superadmin"]:
@@ -113,7 +124,7 @@ def superadmin_only(current_user: dict = Depends(get_current_user)):
         "message": f"Greetings Superadmin {current_user['username']}! Full access granted."
     }
 
-# ✅ Serve static login HTML
+# ✅ Serve the HTML UI
 @app.get("/")
 def serve_home():
     return FileResponse(os.path.join("static", "index.html"))

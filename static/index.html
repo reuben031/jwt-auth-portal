@@ -1,10 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+  <meta charset="UTF-8" />
+  <title>JWT Auth Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4">
+  <div class="bg-white shadow-2xl rounded-xl w-full max-w-md p-6 space-y-6">
 
+    <h2 class="text-3xl font-bold text-center text-gray-800">SOCIAL MEDIA PORTAL</h2>
+
+    <!-- Tabs for Login and Signup -->
+    <div class="flex justify-center gap-4">
+      <button onclick="showTab('login')" class="tab-btn text-blue-600 font-semibold">Login</button>
+      <button onclick="showTab('signup')" class="tab-btn text-gray-500">Signup</button>
+    </div>
+
+    <!-- Signup Form -->
+    <form id="signupForm" class="tab-content hidden space-y-4">
+      <h3 class="text-xl font-semibold text-gray-700">Sign Up</h3>
+      <input id="signupUsername" type="text" placeholder="Username" required class="w-full p-2 border rounded" />
+      <input id="signupPassword" type="password" placeholder="Password" required class="w-full p-2 border rounded" />
+      <select id="signupRole" class="w-full p-2 border rounded">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+        <option value="superadmin">Superadmin</option>
+      </select>
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded w-full">Sign Up</button>
+    </form>
+
+    <!-- Login Form -->
+    <form id="loginForm" class="tab-content space-y-4">
+      <h3 class="text-xl font-semibold text-gray-700">Log In</h3>
+      <input id="loginUsername" type="text" placeholder="Username" required class="w-full p-2 border rounded" />
+      <input id="loginPassword" type="password" placeholder="Password" required class="w-full p-2 border rounded" />
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 rounded w-full">Log In</button>
+    </form>
+
+    <!-- Profile Section -->
+    <div id="profileSection" class="hidden space-y-4 pt-4 border-t">
+      <button id="getProfileBtn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded w-full">View Profile</button>
+      <pre id="responseOutput" class="bg-gray-100 p-3 rounded text-sm max-h-60 overflow-y-auto"></pre>
+    </div>
+
+  </div>
+
+  <script>
+    const signupForm = document.getElementById("signupForm");
+    const loginForm = document.getElementById("loginForm");
+    const getProfileBtn = document.getElementById("getProfileBtn");
+    const output = document.getElementById("responseOutput");
+    const profileSection = document.getElementById("profileSection");
+
+    function showTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelector(`#${tab}Form`).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('text-blue-600'));
+      event.target.classList.add('text-blue-600');
+    }
+
+    // Signup Handler
+    signupForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = document.getElementById("signupUsername").value;
+      const password = document.getElementById("signupPassword").value;
+      const role = document.getElementById("signupRole").value;
+
+      fetch("/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password, role }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          output.textContent = JSON.stringify(data, null, 2);
+          alert("Signup successful!");
+          showTab('login');
+        })
+        .catch((err) => console.error("Signup error:", err));
+    });
+
+    // Login Handler (Improved)
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const username = document.getElementById("loginUsername").value;
+      const password = document.getElementById("loginPassword").value;
+
+      const formData = new URLSearchParams();
+      formData.append("username", username);
+      formData.append("password", password);
+
+      fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+      })
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.detail || "Login failed");
+          }
+          localStorage.setItem("token", data.access_token);
+          output.textContent = JSON.stringify(data, null, 2);
+          alert("Login successful!");
+          profileSection.classList.remove("hidden");
+        })
+        .catch((err) => {
+          alert("Login failed: " + err.message);
+          console.error("Login error:", err);
+        });
+    });
+
+    // Profile Handler
+    getProfileBtn.addEventListener("click", () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("You must log in first.");
+        return;
+      }
+
+      fetch("/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          output.textContent = JSON.stringify(data, null, 2);
+        })
+        .catch((err) => {
+          console.error("Profile fetch error:", err);
+          alert("Unauthorized or error fetching profile");
+        });
+    });
+
+    // Show login tab by default
+    showTab('login');
+  </script>
 </body>
 </html>

@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from models import UserCreate, UserLogin
 from utils import hash_password, verify_password
-from database import fake_users_db, save_users
+from database import fake_users_db, save_users  # ✅ updated import
 from auth import create_access_token, SECRET_KEY, ALGORITHM, get_current_user
 from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
@@ -50,6 +50,9 @@ def signup(user: UserCreate):
     for u in fake_users_db.values():
         if u.get("email") == user.email:
             raise HTTPException(status_code=400, detail="Email already registered")
+
+    if user.role not in ["user", "admin", "superadmin"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
 
     hashed_pw = hash_password(user.password)
 

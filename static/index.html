@@ -75,12 +75,17 @@
       <button id="getProfileBtn" class="bg-purple-600 hover:bg-purple-700 text-white py-2 rounded w-full">View Profile</button>
       <pre id="responseOutput" class="bg-gray-900 text-green-400 p-3 rounded text-sm max-h-60 overflow-y-auto"></pre>
     </div>
-
   </div>
 
   <script>
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+    const signupForm = document.getElementById("signupForm");
+    const loginForm = document.getElementById("loginForm");
+    const getProfileBtn = document.getElementById("getProfileBtn");
+    const responseOutput = document.getElementById("responseOutput");
+    const profileSection = document.getElementById("profileSection");
 
     function showTab(tab) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
